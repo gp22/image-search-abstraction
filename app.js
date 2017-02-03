@@ -12,7 +12,8 @@ ROUTES:
 imagesearch route: api/imagesearch/
 with a query string that searches the db for the given parameters
 it returns 10 records in JSON
-may also include ?offset= which returns records starting at the given index number
+may also include ?offset= which returns records starting at the
+given index number
 (ex. ?offset=10 returns records starting at the 10th record)
 
 latest search route: api/latest/imagesearch/
@@ -49,8 +50,10 @@ var querySchema = new mongoose.Schema({
 var Image = mongoose.model('Image', imageSchema);
 var Query = mongoose.model('Query', querySchema);
 
-app.get('/api/imagesearch/:query', function(req, res) {
-    var queryString = req.params.query;
+app.get('/api/imagesearch/:search', function(req, res) {
+    var searchTerms = req.params.search.split(' ');
+    var offset = req.query.offset;
+    console.log(searchTerms);
     // console.log('queryString', queryString);
     // res.send('image search route');
 });
@@ -58,6 +61,30 @@ app.get('/api/imagesearch/:query', function(req, res) {
 app.get('/api/latest/imagesearch/', function(req, res) {
     // res.send('latest query route');
 });
+
+Image.find({ snippet: { $in: 'Best Funny Dog Vines 2015 ...' } }, function(err, image) {
+    if (err) {
+        console.log(err);
+    } else {
+        console.log(image);
+    }
+});
+
+// Helper function used to create image records
+// keep commented out for normal usage
+// Image.create({
+//     url: "https://i.ytimg.com/vi/-OSSDuMkk70/hqdefault.jpg",
+//     snippet: "Funny Dogs - A Funny Dog ...",
+//     thumbnail: "https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcSFiJfN301Cg9qKMVjkNBkfOk6TS7-OJ9pMNeayEEjm4tG3bzw1kWNukFY",
+//     context: "https://www.youtube.com/watch?v=-OSSDuMkk70"
+// }, function(err, image) {
+//     if (err) {
+//         console.log(err);
+//     } else {
+//         console.log('newly created image');
+//         console.log(image);
+//     }
+// });
 
 // use process.env.PORT for compatibility with heroku
 app.listen(process.env.PORT || 3000, function() {
