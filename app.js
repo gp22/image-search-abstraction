@@ -56,6 +56,25 @@ app.get('/api/imagesearch/:search', function(req, res) {
     console.log(searchTerms);
     // console.log('queryString', queryString);
     // res.send('image search route');
+
+    // Create an array of regular expressions out of searchTerms
+    var searchTermsExp = searchTerms.map(function(searchTerm) {
+        return new RegExp(searchTerm, 'i');
+    });
+
+    // Use the search term regex array to search every field in the image db
+    Image.find({ $or: [
+            { url: { $in: searchTermsExp } },
+            { snippet: { $in: searchTermsExp } },
+            { thumbnail: { $in: searchTermsExp } },
+            { context: { $in: searchTermsExp } }
+        ]}, function(err, image) {
+            if (err) {
+                console.log(err);
+            } else {
+                console.log(image);
+            }
+        });
 });
 
 app.get('/api/latest/imagesearch/', function(req, res) {
