@@ -62,14 +62,6 @@ app.get('/api/latest/imagesearch/', function(req, res) {
     // res.send('latest query route');
 });
 
-Image.find({ snippet: { $in: 'Best Funny Dog Vines 2015 ...' } }, function(err, image) {
-    if (err) {
-        console.log(err);
-    } else {
-        console.log(image);
-    }
-});
-
 // Helper function used to create image records
 // keep commented out for normal usage
 // Image.create({
