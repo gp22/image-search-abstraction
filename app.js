@@ -1,18 +1,24 @@
 /*
-Requirements:
-
-COLLECTIONS:
-
-image collection
-
-queries collection that saves every query string with a timestamp
-
-latest search route: api/latest/imagesearch/
+Image Search Abstraction Layer
+Deployed to: https://gp22-imagesearch.herokuapp.com/
+This simple app let's you get the image URLs, alt text and page urls in JSON
+format for a set of images relating to a query string.
+Example:
+https://gp22-imagesearch.herokuapp.com/api/imagesearch/query string
+You can paginate through the responses by adding a ?offset=n parameter to the
+URL, where n is the starting record number when showing search results.
+Example:
+https://gp22-imagesearch.herokuapp.com/api/imagesearch/query?offset=10 returns
+records starting at the 10th record
+You can get a list of the most recently submitted search strings in JSON format
+by going to:
+https://gp22-imagesearch.herokuapp.com/api/latest/imagesearch/
 */
 
 var express = require('express');
 var app = express();
 var mongoose = require('mongoose');
+var moment = require('moment');
 
 /*
 Use the heroku environment variable MLAB_URI to store the db name and login
@@ -55,13 +61,17 @@ app.get('/api/imagesearch/:search', function(req, res) {
     var searchString = req.params.search;
     var searchTerms = searchString.split(' ');
     var offset = req.query.offset ? Number(req.query.offset) : 0;
+    var timeStamp = moment().format();
 
-    var timeStamp = Date.getYear() + '-' +
-                    (Date.getMonth() + 1) + '-' +
-                    Date.getDate();
-
-    console.log(searchString);
-    console.log(timeStamp);
+    // Create a record of the query
+    Query.create({
+        term: searchString,
+        when: timeStamp
+    }, function(err, timeStamp) {
+        if (err) {
+            console.log(err);
+        }
+    });
 
     // Create an array of regular expressions out of searchTerms
     var searchTermsExp = searchTerms.map(function(searchTerm) {
@@ -82,9 +92,11 @@ app.get('/api/imagesearch/:search', function(req, res) {
                     if (err) {
                         console.log(err);
                     } else {
+                        // Create and send JSON response
                         var response = {};
                         for (var i = 0; i < images.length; i++) {
-                            response[i] = JSON.parse(JSON.stringify(images[i]));
+                            var jsonString = JSON.stringify(images[i]);
+                            response[i] = JSON.parse(jsonString);
                         }
                         res.send(response);
                     }
@@ -92,7 +104,22 @@ app.get('/api/imagesearch/:search', function(req, res) {
 });
 
 app.get('/api/latest/imagesearch/', function(req, res) {
-    // res.send('latest query route');
+    /*
+    Route used to display the last 10 queries
+    */
+    Query.find({}, { _id: 0, __v: 0 }, function(err, queries) {
+        if (err) {
+            console.log(err);
+        } else {
+            // Create and send JSON response
+            var response = {};
+            for (var i = 0; i < queries.length; i++) {
+                var jsonString = JSON.stringify(queries[i]);
+                response[i] = JSON.parse(jsonString);
+            }
+            res.send(response);
+        }
+    });
 });
 
 // Helper function used to create image records
