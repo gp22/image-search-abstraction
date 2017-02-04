@@ -49,9 +49,19 @@ app.get('/api/imagesearch/:search', function(req, res) {
     May also include ?offset= which returns records starting at the
     given index number
     (ex. ?offset=10 returns records starting at the 10th record)
+    For each search: adds a query record containing the search term
+    and a timestamp
     */
-    var searchTerms = req.params.search.split(' ');
+    var searchString = req.params.search;
+    var searchTerms = searchString.split(' ');
     var offset = req.query.offset ? Number(req.query.offset) : 0;
+
+    var timeStamp = Date.getYear() + '-' +
+                    (Date.getMonth() + 1) + '-' +
+                    Date.getDate();
+
+    console.log(searchString);
+    console.log(timeStamp);
 
     // Create an array of regular expressions out of searchTerms
     var searchTermsExp = searchTerms.map(function(searchTerm) {
