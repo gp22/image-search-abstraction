@@ -1,27 +1,24 @@
 /*
-Requirements:
-
-COLLECTIONS:
-
-image collection
-
-queries collection that saves every query string with a timestamp
-
-ROUTES:
-
-imagesearch route: api/imagesearch/
-with a query string that searches the db for the given parameters
-it returns 10 records in JSON
-may also include ?offset= which returns records starting at the
-given index number
-(ex. ?offset=10 returns records starting at the 10th record)
-
-latest search route: api/latest/imagesearch/
+Image Search Abstraction Layer
+Deployed to: https://gp22-imagesearch.herokuapp.com/
+This simple app let's you get the image URLs, alt text and page urls in JSON
+format for a set of images relating to a query string.
+Example:
+https://gp22-imagesearch.herokuapp.com/api/imagesearch/query string
+You can paginate through the responses by adding a ?offset=n parameter to the
+URL, where n is the starting record number when showing search results.
+Example:
+https://gp22-imagesearch.herokuapp.com/api/imagesearch/query?offset=10 returns
+records starting at the 10th record
+You can get a list of the most recently submitted search strings in JSON format
+by going to:
+https://gp22-imagesearch.herokuapp.com/api/latest/imagesearch/
 */
 
 var express = require('express');
 var app = express();
 var mongoose = require('mongoose');
+var moment = require('moment');
 
 /*
 Use the heroku environment variable MLAB_URI to store the db name and login
@@ -51,15 +48,78 @@ var Image = mongoose.model('Image', imageSchema);
 var Query = mongoose.model('Query', querySchema);
 
 app.get('/api/imagesearch/:search', function(req, res) {
-    var searchTerms = req.params.search.split(' ');
-    var offset = req.query.offset;
-    console.log(searchTerms);
-    // console.log('queryString', queryString);
-    // res.send('image search route');
+    /*
+    Route used to query the image db
+    Searches the db for the strings contained in :search
+    Returns 10 records in JSON
+    May also include ?offset= which returns records starting at the
+    given index number
+    (ex. ?offset=10 returns records starting at the 10th record)
+    For each search: adds a query record containing the search term
+    and a timestamp
+    */
+    var searchString = req.params.search;
+    var searchTerms = searchString.split(' ');
+    var offset = req.query.offset ? Number(req.query.offset) : 0;
+    var timeStamp = moment().format();
+
+    // Create a record of the query
+    Query.create({
+        term: searchString,
+        when: timeStamp
+    }, function(err, timeStamp) {
+        if (err) {
+            console.log(err);
+        }
+    });
+
+    // Create an array of regular expressions out of searchTerms
+    var searchTermsExp = searchTerms.map(function(searchTerm) {
+        return new RegExp(searchTerm, 'i');
+    });
+
+    // Use searchTermsExp to search every field in the image db
+    // Return results starting at the index given in offset
+    Image.find({ $or:
+                    [
+                        { url: { $in: searchTermsExp } },
+                        { snippet: { $in: searchTermsExp } },
+                        { thumbnail: { $in: searchTermsExp } },
+                        { context: { $in: searchTermsExp } }
+                    ]
+                }, { _id: 0, __v: 0 }, { skip: offset, limit: 10, },
+                function(err, images) {
+                    if (err) {
+                        console.log(err);
+                    } else {
+                        // Create and send JSON response
+                        var response = {};
+                        for (var i = 0; i < images.length; i++) {
+                            var jsonString = JSON.stringify(images[i]);
+                            response[i] = JSON.parse(jsonString);
+                        }
+                        res.send(response);
+                    }
+                });
 });
 
 app.get('/api/latest/imagesearch/', function(req, res) {
-    // res.send('latest query route');
+    /*
+    Route used to display the last 10 queries
+    */
+    Query.find({}, { _id: 0, __v: 0 }, function(err, queries) {
+        if (err) {
+            console.log(err);
+        } else {
+            // Create and send JSON response
+            var response = {};
+            for (var i = 0; i < queries.length; i++) {
+                var jsonString = JSON.stringify(queries[i]);
+                response[i] = JSON.parse(jsonString);
+            }
+            res.send(response);
+        }
+    });
 });
 
 // Helper function used to create image records
