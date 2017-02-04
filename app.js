@@ -7,15 +7,6 @@ image collection
 
 queries collection that saves every query string with a timestamp
 
-ROUTES:
-
-imagesearch route: api/imagesearch/
-with a query string that searches the db for the given parameters
-it returns 10 records in JSON
-may also include ?offset= which returns records starting at the
-given index number
-(ex. ?offset=10 returns records starting at the 10th record)
-
 latest search route: api/latest/imagesearch/
 */
 
@@ -51,30 +42,43 @@ var Image = mongoose.model('Image', imageSchema);
 var Query = mongoose.model('Query', querySchema);
 
 app.get('/api/imagesearch/:search', function(req, res) {
+    /*
+    Route used to query the image db
+    Searches the db for the strings contained in :search
+    Returns 10 records in JSON
+    May also include ?offset= which returns records starting at the
+    given index number
+    (ex. ?offset=10 returns records starting at the 10th record)
+    */
     var searchTerms = req.params.search.split(' ');
-    var offset = req.query.offset;
-    console.log(searchTerms);
-    // console.log('queryString', queryString);
-    // res.send('image search route');
+    var offset = req.query.offset ? Number(req.query.offset) : 0;
 
     // Create an array of regular expressions out of searchTerms
     var searchTermsExp = searchTerms.map(function(searchTerm) {
         return new RegExp(searchTerm, 'i');
     });
 
-    // Use the search term regex array to search every field in the image db
-    Image.find({ $or: [
-            { url: { $in: searchTermsExp } },
-            { snippet: { $in: searchTermsExp } },
-            { thumbnail: { $in: searchTermsExp } },
-            { context: { $in: searchTermsExp } }
-        ]}, function(err, image) {
-            if (err) {
-                console.log(err);
-            } else {
-                console.log(image);
-            }
-        });
+    // Use searchTermsExp to search every field in the image db
+    // Return results starting at the index given in offset
+    Image.find({ $or:
+                    [
+                        { url: { $in: searchTermsExp } },
+                        { snippet: { $in: searchTermsExp } },
+                        { thumbnail: { $in: searchTermsExp } },
+                        { context: { $in: searchTermsExp } }
+                    ]
+                }, { _id: 0, __v: 0 }, { skip: offset, limit: 10, },
+                function(err, images) {
+                    if (err) {
+                        console.log(err);
+                    } else {
+                        var response = {};
+                        for (var i = 0; i < images.length; i++) {
+                            response[i] = JSON.parse(JSON.stringify(images[i]));
+                        }
+                        res.send(response);
+                    }
+                });
 });
 
 app.get('/api/latest/imagesearch/', function(req, res) {
