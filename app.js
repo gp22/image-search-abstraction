@@ -107,28 +107,29 @@ app.get('/api/latest/imagesearch/', function(req, res) {
     /*
     Route used to display the last 10 queries
     */
-    Query.find({}, { _id: 0, __v: 0 }, function(err, queries) {
-        if (err) {
-            console.log(err);
-        } else {
-            // Create and send JSON response
-            var response = {};
-            for (var i = 0; i < queries.length; i++) {
-                var jsonString = JSON.stringify(queries[i]);
-                response[i] = JSON.parse(jsonString);
+    Query.find({}, { _id: 0, __v: 0 }, { sort: { when: -1 }, limit: 10 },
+        function(err, queries) {
+            if (err) {
+                console.log(err);
+            } else {
+                // Create and send JSON response
+                var response = {};
+                for (var i = 0; i < queries.length; i++) {
+                    var jsonString = JSON.stringify(queries[i]);
+                    response[i] = JSON.parse(jsonString);
+                }
+                res.send(response);
             }
-            res.send(response);
-        }
     });
 });
 
 // Helper function used to create image records
 // keep commented out for normal usage
 // Image.create({
-//     url: "https://i.ytimg.com/vi/-OSSDuMkk70/hqdefault.jpg",
-//     snippet: "Funny Dogs - A Funny Dog ...",
-//     thumbnail: "https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcSFiJfN301Cg9qKMVjkNBkfOk6TS7-OJ9pMNeayEEjm4tG3bzw1kWNukFY",
-//     context: "https://www.youtube.com/watch?v=-OSSDuMkk70"
+//     "url": "https://i.ytimg.com/vi/czhDhxFfZsM/maxresdefault.jpg",
+//     "snippet": "Baby & Kids Fails - 2015 FUNNY ...",
+//     "thumbnail": "https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcRCuq3OJnxBpSvf1qLBRRC6Spk8Jy2vRiki3I6B-GpKA9_h_VmdZPnCCTFU",
+//     "context": "https://www.youtube.com/watch?v=czhDhxFfZsM"
 // }, function(err, image) {
 //     if (err) {
 //         console.log(err);
