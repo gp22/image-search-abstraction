@@ -14,11 +14,12 @@ You can get a list of the most recently submitted search strings in JSON format
 by going to:
 https://gp22-imagesearch.herokuapp.com/api/latest/imagesearch/
 */
+'use strict';
 
-var express = require('express');
-var app = express();
-var mongoose = require('mongoose');
-var moment = require('moment');
+const express = require('express');
+const app = express();
+const mongoose = require('mongoose');
+const moment = require('moment');
 
 /*
 Use the heroku environment variable MLAB_URI to store the db name and login
@@ -32,22 +33,22 @@ const uri = process.env.MLAB_URI;
 mongoose.connect(uri);
 
 // Define schemas for the format of the db records
-var imageSchema = new mongoose.Schema({
+const imageSchema = new mongoose.Schema({
     url: String,
     snippet: String,
     thumbnail: String,
     context: String
 });
 
-var querySchema = new mongoose.Schema({
+const querySchema = new mongoose.Schema({
     term: String,
     when: String
 });
 
-var Image = mongoose.model('Image', imageSchema);
-var Query = mongoose.model('Query', querySchema);
+const Image = mongoose.model('Image', imageSchema);
+const Query = mongoose.model('Query', querySchema);
 
-app.get('/api/imagesearch/:search', function(req, res) {
+app.get('/api/imagesearch/:search', (req, res) => {
     /*
     Route used to query the image db
     Searches the db for the strings contained in :search
@@ -58,25 +59,22 @@ app.get('/api/imagesearch/:search', function(req, res) {
     For each search: adds a query record containing the search term
     and a timestamp
     */
-    var searchString = req.params.search;
-    var searchTerms = searchString.split(' ');
-    var offset = req.query.offset ? Number(req.query.offset) : 0;
-    var timeStamp = moment().format();
+    const searchString = req.params.search;
+    const searchTerms = searchString.split(' ');
+    const offset = req.query.offset ? Number(req.query.offset) : 0;
+    const timeStamp = moment().format();
 
     // Create a record of the query
     Query.create({
         term: searchString,
         when: timeStamp
-    }, function(err, timeStamp) {
-        if (err) {
-            console.log(err);
-        }
+    }, (err, timeStamp) => {
+        (err) ? console.log(err) : undefined;
     });
 
     // Create an array of regular expressions out of searchTerms
-    var searchTermsExp = searchTerms.map(function(searchTerm) {
-        return new RegExp(searchTerm, 'i');
-    });
+    const searchTermsExp = searchTerms
+        .map(searchTerm => new RegExp(searchTerm, 'i'));
 
     // Use searchTermsExp to search every field in the image db
     // Return results starting at the index given in offset
@@ -88,36 +86,36 @@ app.get('/api/imagesearch/:search', function(req, res) {
                         { context: { $in: searchTermsExp } }
                     ]
                 }, { _id: 0, __v: 0 }, { skip: offset, limit: 10, },
-                function(err, images) {
-                    if (err) {
-                        console.log(err);
+                (err, images) => {
+                   if (err) {
+                    console.log(err);
                     } else {
                         // Create and send JSON response
-                        var response = {};
-                        for (var i = 0; i < images.length; i++) {
-                            var jsonString = JSON.stringify(images[i]);
+                        let response = {};
+                        images.forEach((image, i) => {
+                            let jsonString = JSON.stringify(image);
                             response[i] = JSON.parse(jsonString);
-                        }
+                        });
                         res.send(response);
                     }
                 });
 });
 
-app.get('/api/latest/imagesearch/', function(req, res) {
+app.get('/api/latest/imagesearch/', (req, res) => {
     /*
     Route used to display the last 10 queries
     */
     Query.find({}, { _id: 0, __v: 0 }, { sort: { when: -1 }, limit: 10 },
-        function(err, queries) {
+        (err, queries) => {
             if (err) {
                 console.log(err);
             } else {
                 // Create and send JSON response
-                var response = {};
-                for (var i = 0; i < queries.length; i++) {
-                    var jsonString = JSON.stringify(queries[i]);
+                let response = {};
+                queries.forEach((query, i) => {
+                    let jsonString = JSON.stringify(query);
                     response[i] = JSON.parse(jsonString);
-                }
+                });
                 res.send(response);
             }
     });
@@ -140,6 +138,4 @@ app.get('/api/latest/imagesearch/', function(req, res) {
 // });
 
 // use process.env.PORT for compatibility with heroku
-app.listen(process.env.PORT || 3000, function() {
-    console.log('Server started');
-});
+app.listen(process.env.PORT || 3000, () => console.log('Server started'));
